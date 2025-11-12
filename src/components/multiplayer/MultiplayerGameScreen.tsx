@@ -83,7 +83,7 @@ export const MultiplayerGameScreen: React.FC<MultiplayerGameScreenProps> = ({ ro
     }
 
     // 저장 완료 후 잠시 대기 (DB 반영 시간 확보)
-    await new Promise(resolve => setTimeout(resolve, success ? 1500 : 2500));
+    await new Promise(resolve => setTimeout(resolve, success ? 2000 : 3000));
     
     onGameOver();
   }

@@ -76,14 +76,16 @@ export const MultiplayerResultScreen: React.FC<MultiplayerResultScreenProps> = (
       }
     };
 
-    // 초기 로드
+    // 초기 로드 (게임 종료 후 점수 저장 시간 확보를 위해 약간의 지연)
     setLoading(true);
-    fetchResults();
+    setTimeout(() => {
+      fetchResults();
+    }, 500); // 0.5초 지연 후 초기 로드
     
-    // 1초마다 세션 새로고침 (더 빠른 반영)
+    // 0.5초마다 세션 새로고침 (더 빠른 반영)
     const refreshInterval = setInterval(() => {
       fetchResults();
-    }, 1000);
+    }, 500);
 
     return () => {
       clearInterval(refreshInterval);

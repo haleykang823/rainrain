@@ -105,22 +105,21 @@ export const useRoomRealtime = (roomId: string | null): UseRoomRealtimeReturn =>
       .from('game_sessions')
       .select('*, users(id, nickname)')
       .eq('room_id', roomId)
-      .order('score', { ascending: false }); // 점수 순으로 정렬 (최신 점수 반영)
+      .order('played_at', { ascending: false }); // played_at 기준 정렬 (최신 업데이트 반영)
 
     if (!error && data) {
-      // 각 사용자당 가장 높은 점수의 세션만 선택 (같은 세션이 업데이트되면 점수가 높아짐)
+      // 각 사용자당 가장 최신 세션만 선택
       const userSessionsMap = new Map<string, any>();
       
       data.forEach((s: any) => {
         const userId = s.user_id;
         const existing = userSessionsMap.get(userId);
         
-        // 기존 세션이 없거나, 현재 세션의 점수가 더 높으면 업데이트
-        // 같은 세션 ID면 항상 업데이트 (점수가 업데이트되었을 수 있음)
+        // 기존 세션이 없거나, 현재 세션이 더 최신이면 업데이트
+        // played_at이 갱신되므로 최신 세션을 선택할 수 있음
         if (!existing || 
-            s.id === existing.id || 
-            s.score > existing.score ||
-            (s.score === existing.score && new Date(s.played_at) > new Date(existing.played_at))) {
+            new Date(s.played_at) > new Date(existing.played_at) ||
+            (s.played_at === existing.played_at && s.score > existing.score)) {
           userSessionsMap.set(userId, s);
         }
       });

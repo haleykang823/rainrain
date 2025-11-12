@@ -40,9 +40,9 @@ export const authService = {
       const { data: userData, error: insertError } = await supabase
         .from('users')
         .insert([{
-          id: authData.user.id,
-          nickname,
-          best_score: 0,
+            id: authData.user.id,
+            nickname,
+            best_score: 0,
         }])
         .select()
         .single();
@@ -87,7 +87,7 @@ export const authService = {
       // 3. 로그인 시도
       const email = `${nickname}@game.local`;
       console.log('[authService] signInWithPassword 호출:', email);
-      
+
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -189,7 +189,7 @@ export const authService = {
   async getCurrentUser(): Promise<{ user: User | null; error: string | null }> {
     try {
       const { data: { user: authUser } } = await supabase.auth.getUser();
-      
+
       if (!authUser) {
         return { user: null, error: null };
       }
