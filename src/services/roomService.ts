@@ -338,7 +338,7 @@ export const saveGameSession = async (
       console.log('[saveGameSession] 기존 세션 확인:', { roomId, userId });
       const { data: existingSession, error: findError } = await supabase
         .from('game_sessions')
-        .select('id')
+        .select('id, difficulty, played_at')
         .eq('room_id', roomId)
         .eq('user_id', userId)
         .maybeSingle();
@@ -352,7 +352,9 @@ export const saveGameSession = async (
       if (existingSession) {
         // 기존 세션 업데이트
         console.log('[saveGameSession] 기존 세션 업데이트:', existingSession.id);
-        const { data, error } = await supabase
+        
+        // 업데이트 실행 (select 없이)
+        const { error: updateError } = await supabase
           .from('game_sessions')
           .update({
             score,
@@ -360,18 +362,60 @@ export const saveGameSession = async (
             total_count: totalCount,
             accuracy,
           })
-          .eq('id', existingSession.id)
-          .select()
-          .single();
+          .eq('id', existingSession.id);
 
-        if (error) {
-          console.error('[saveGameSession] 세션 업데이트 실패:', error);
-          return { session: null, error: error.message };
+        if (updateError) {
+          console.error('[saveGameSession] 세션 업데이트 실패:', updateError);
+          return { session: null, error: updateError.message };
         }
 
-        console.log('[saveGameSession] 세션 업데이트 성공:', data.id);
+        // 업데이트 후 별도로 조회 (안전하게)
+        const { data: updatedSession, error: fetchError } = await supabase
+          .from('game_sessions')
+          .select('*')
+          .eq('id', existingSession.id)
+          .maybeSingle();
+
+        if (fetchError) {
+          console.error('[saveGameSession] 업데이트된 세션 조회 실패:', fetchError);
+          // 업데이트는 성공했으므로 기존 세션 정보로 반환
+          return { 
+            session: {
+              id: existingSession.id,
+              room_id: roomId,
+              user_id: userId,
+              score,
+              correct_count: correctCount,
+              total_count: totalCount,
+              accuracy,
+              difficulty: existingSession.difficulty || difficulty,
+              played_at: existingSession.played_at || new Date().toISOString(),
+            } as GameSession, 
+            error: null 
+          };
+        }
+
+        if (!updatedSession) {
+          console.warn('[saveGameSession] 업데이트된 세션을 찾을 수 없음, 기존 세션 정보로 반환');
+          return { 
+            session: {
+              id: existingSession.id,
+              room_id: roomId,
+              user_id: userId,
+              score,
+              correct_count: correctCount,
+              total_count: totalCount,
+              accuracy,
+              difficulty: existingSession.difficulty || difficulty,
+              played_at: existingSession.played_at || new Date().toISOString(),
+            } as GameSession, 
+            error: null 
+          };
+        }
+
+        console.log('[saveGameSession] 세션 업데이트 성공:', updatedSession.id);
         // best_score 업데이트는 건너뛰고 바로 반환 (게임 중간 업데이트)
-        return { session: data as GameSession, error: null };
+        return { session: updatedSession as GameSession, error: null };
       }
     }
 
