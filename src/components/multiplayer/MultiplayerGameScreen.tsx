@@ -128,7 +128,7 @@ export const MultiplayerGameScreen: React.FC<MultiplayerGameScreenProps> = ({ ro
     inputRef.current?.focus();
   }, [user, room.id, room.difficulty]);
 
-  // 실시간 점수 업데이트 (2초마다) - 주기 단축으로 실시간성 향상
+  // 실시간 점수 업데이트 (0.5초마다) - 더 빠른 동기화
   useEffect(() => {
     if (!user || !isGameActive || gameEndedRef.current) return;
 
@@ -158,7 +158,7 @@ export const MultiplayerGameScreen: React.FC<MultiplayerGameScreenProps> = ({ ro
               console.error('[MultiplayerGameScreen] 실시간 점수 업데이트 실패:', result.error, '남은 재시도:', retries - 1);
               retries--;
               if (retries > 0) {
-                await new Promise(resolve => setTimeout(resolve, 500)); // 0.5초 후 재시도
+                await new Promise(resolve => setTimeout(resolve, 300)); // 0.3초 후 재시도
               }
             } else {
               success = true;
@@ -167,19 +167,16 @@ export const MultiplayerGameScreen: React.FC<MultiplayerGameScreenProps> = ({ ro
             console.error('[MultiplayerGameScreen] 실시간 점수 업데이트 예외:', error, '남은 재시도:', retries - 1);
             retries--;
             if (retries > 0) {
-              await new Promise(resolve => setTimeout(resolve, 500)); // 0.5초 후 재시도
+              await new Promise(resolve => setTimeout(resolve, 300)); // 0.3초 후 재시도
             }
           }
         }
         
         if (!success) {
           console.error('[MultiplayerGameScreen] 실시간 점수 업데이트 최종 실패 (재시도 3회 실패)');
-        } else {
-          // 업데이트 성공 후 잠시 대기 (DB 반영 시간)
-          await new Promise(resolve => setTimeout(resolve, 200));
         }
       }
-    }, 1000); // 1초로 단축하여 더 빠른 동기화
+    }, 500); // 0.5초로 단축하여 더 빠른 동기화
     
     return () => {
       if (scoreUpdateIntervalRef.current) {

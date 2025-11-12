@@ -349,6 +349,7 @@ export const saveGameSession = async (
         // 기존 세션 업데이트
         
         // 업데이트 실행 (select 없이)
+        // 점수 업데이트 시 played_at도 갱신하여 최신 세션으로 인식되도록 함
         const { error: updateError } = await supabase
           .from('game_sessions')
           .update({
@@ -356,6 +357,7 @@ export const saveGameSession = async (
             correct_count: correctCount,
             total_count: totalCount,
             accuracy,
+            played_at: new Date().toISOString(), // 업데이트 시간 갱신
           })
           .eq('id', existingSession.id);
 

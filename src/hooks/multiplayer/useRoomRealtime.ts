@@ -105,18 +105,22 @@ export const useRoomRealtime = (roomId: string | null): UseRoomRealtimeReturn =>
       .from('game_sessions')
       .select('*, users(id, nickname)')
       .eq('room_id', roomId)
-      .order('played_at', { ascending: false }); // 최신 순으로 정렬
+      .order('score', { ascending: false }); // 점수 순으로 정렬 (최신 점수 반영)
 
     if (!error && data) {
-      // 각 사용자당 가장 최신 세션만 선택
+      // 각 사용자당 가장 높은 점수의 세션만 선택 (같은 세션이 업데이트되면 점수가 높아짐)
       const userSessionsMap = new Map<string, any>();
       
       data.forEach((s: any) => {
         const userId = s.user_id;
         const existing = userSessionsMap.get(userId);
         
-        // 기존 세션이 없거나, 현재 세션이 더 최신이면 업데이트
-        if (!existing || new Date(s.played_at) > new Date(existing.played_at)) {
+        // 기존 세션이 없거나, 현재 세션의 점수가 더 높으면 업데이트
+        // 같은 세션 ID면 항상 업데이트 (점수가 업데이트되었을 수 있음)
+        if (!existing || 
+            s.id === existing.id || 
+            s.score > existing.score ||
+            (s.score === existing.score && new Date(s.played_at) > new Date(existing.played_at))) {
           userSessionsMap.set(userId, s);
         }
       });
@@ -407,10 +411,10 @@ export const useRoomRealtime = (roomId: string | null): UseRoomRealtimeReturn =>
         await refreshParticipants();
       }, 3000);
 
-      // 게임 세션 1초마다 자동 갱신 (실시간 점수 동기화)
+      // 게임 세션 0.5초마다 자동 갱신 (실시간 점수 동기화) - 더 빠른 동기화
       sessionsRefreshInterval = setInterval(async () => {
         await loadGameSessions();
-      }, 1000);
+      }, 500);
 
       // 방 존재 여부 및 상태 2초마다 확인 (방 삭제 감지 및 상태 동기화)
       roomCheckInterval = setInterval(async () => {
