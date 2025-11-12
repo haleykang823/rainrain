@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Difficulty } from '../types';
-import { DIFFICULTY_CONFIGS } from '../constants';
+import { Difficulty } from '../../types';
+import { DIFFICULTY_CONFIGS } from '../../constants';
 
 interface DifficultyScreenProps {
   onSelectDifficulty: (difficulty: Difficulty, customTables?: number[]) => void;

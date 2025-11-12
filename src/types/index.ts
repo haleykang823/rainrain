@@ -1,46 +1,104 @@
-// 게임 상태 타입
-export type GameState = 'menu' | 'difficulty' | 'playing' | 'gameover';
+// ===== 기본 게임 타입 =====
 
-// 난이도 레벨
 export type Difficulty = 'easy' | 'normal' | 'hard' | 'custom';
 
-// 물방울(문제) 타입
+export type ItemType = 'SLOW' | 'BONUS' | 'CLEAR' | null;
+
 export interface Droplet {
   id: number;
-  multiplicand: number; // 피승수
-  multiplier: number; // 승수
-  answer: number; // 정답
-  x: number; // x 좌표
-  y: number; // y 좌표
-  speed: number; // 낙하 속도
+  multiplicand: number;
+  multiplier: number;
+  answer: number;
+  problem: string; // "3×4"
+  x: number;
+  y: number;
+  speed: number;
+  itemType: ItemType;
 }
 
-// 난이도 설정 타입
 export interface DifficultyConfig {
   name: string;
   description: string;
-  tables: number[]; // 출제할 단수들
-  speed: number; // 기본 낙하 속도
-  maxDroplets: number; // 동시 물방울 개수
-  spawnInterval: number; // 생성 간격 (ms)
+  tables: number[];
+  speed: number;
+  spawnInterval: number;
 }
 
-// 게임 통계 타입
 export interface GameStats {
   score: number;
   lives: number;
+  level: number;
   correctAnswers: number;
-  totalQuestions: number;
-  combo: number;
-  highScore: number;
-}
-
-// 게임 결과 타입
-export interface GameResult {
-  score: number;
-  correctAnswers: number;
-  totalQuestions: number;
+  totalAttempts: number;
   accuracy: number;
-  grade: number; // 별 개수 (1-5)
+  statusMessage: string;
+  isSlowed: boolean;
 }
 
+// ===== 인증 타입 =====
+
+export interface User {
+  id: string;
+  nickname: string;
+  best_score: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// ===== 게임 세션 타입 =====
+
+export interface GameSession {
+  id: string;
+  room_id: string | null;
+  user_id: string;
+  score: number;
+  correct_count: number;
+  total_count: number;
+  accuracy: number;
+  difficulty: string;
+  played_at: string;
+}
+
+// ===== 멀티플레이어 타입 =====
+
+export interface Room {
+  id: string;
+  room_code: string;
+  host_id: string;
+  difficulty: string;
+  custom_tables: number[] | null;
+  status: 'waiting' | 'playing' | 'finished';
+  max_players: number;
+  created_at: string;
+  finished_at: string | null;
+  current_problem?: {
+    multiplicand: number;
+    multiplier: number;
+    answer: number;
+    problem: string;
+    x: number;
+    y: number;
+    speed: number;
+    itemType: ItemType;
+    createdAt: string;
+  } | null;
+  problem_created_at?: string | null;
+}
+
+export interface RoomParticipant {
+  id: string;
+  room_id: string;
+  user_id: string;
+  user?: User;
+  joined_at: string;
+}
+
+// ===== 리더보드 타입 =====
+
+export interface LeaderboardEntry {
+  user_id: string;
+  nickname: string;
+  best_score: number;
+  total_score: number;
+  rank: number;
+}

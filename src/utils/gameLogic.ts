@@ -1,51 +1,53 @@
-import { Droplet, DifficultyConfig } from '../types';
+import { Droplet, ItemType } from '../types';
 import { GRADE_THRESHOLDS, GAME_CONFIG } from '../constants';
 
-// 랜덤 곱셈 문제 생성
-export const generateProblem = (tables: number[]): { multiplicand: number; multiplier: number; answer: number } => {
+const ITEM_PROBABILITY = 0.35;
+
+// 곱셈 문제 생성
+export function generateProblem(tables: number[]) {
   const table = tables[Math.floor(Math.random() * tables.length)];
-  const multiplier = Math.floor(Math.random() * 9) + 1; // 1~9
+  const multiplier = Math.floor(Math.random() * 9) + 1;
   return {
     multiplicand: table,
     multiplier,
     answer: table * multiplier,
   };
-};
+}
 
-// 새로운 물방울 생성
+// 물방울 생성
 let dropletIdCounter = 0;
-export const createDroplet = (config: DifficultyConfig, canvasWidth: number): Droplet => {
-  const problem = generateProblem(config.tables);
-  const padding = 80; // 좌우 여백
+export function createDroplet(tables: number[], canvasWidth: number): Droplet {
+  const problem = generateProblem(tables);
+  const padding = 80;
+  
+  // 아이템 타입 결정
+  let itemType: ItemType = null;
+  if (Math.random() < ITEM_PROBABILITY) {
+    const roll = Math.random();
+    if (roll < 0.33) itemType = 'SLOW';
+    else if (roll < 0.66) itemType = 'BONUS';
+    else itemType = 'CLEAR';
+  }
   
   return {
     id: dropletIdCounter++,
     ...problem,
+    problem: `${problem.multiplicand}×${problem.multiplier}`,
     x: Math.random() * (canvasWidth - padding * 2) + padding,
     y: -50,
-    speed: config.speed,
+    speed: 0.5,
+    itemType,
   };
-};
+}
 
-// 점수에 따른 등급 계산
-export const calculateGrade = (score: number): number => {
+// 등급 계산
+export function calculateGrade(score: number): number {
   const grade = GRADE_THRESHOLDS.find(g => score >= g.min && score <= g.max);
   return grade?.stars || 1;
-};
+}
 
-// 콤보 보너스 계산
-export const getComboBonus = (combo: number): number => {
-  const bonuses = Object.entries(GAME_CONFIG.COMBO_BONUS).reverse();
-  for (const [threshold, bonus] of bonuses) {
-    if (combo >= parseInt(threshold)) {
-      return bonus;
-    }
-  }
-  return 0;
-};
-
-// 빠른 답변 여부 확인
-export const isFastAnswer = (dropletY: number, canvasHeight: number): boolean => {
-  return dropletY < canvasHeight * GAME_CONFIG.FAST_ANSWER_THRESHOLD;
-};
-
+// 정확도 계산
+export function calculateAccuracy(correct: number, total: number): number {
+  if (total === 0) return 100;
+  return Math.round((correct / total) * 100);
+}
