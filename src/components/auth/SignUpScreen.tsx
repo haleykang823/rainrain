@@ -26,11 +26,24 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({ onSuccess, onBackToL
     }
 
     setIsLoading(true);
-    const success = await signUp(nickname, password);
-    setIsLoading(false);
+    
+    try {
+      // 타임아웃 설정 (30초)
+      const timeoutPromise = new Promise<boolean>((_, reject) => {
+        setTimeout(() => reject(new Error('회원가입 요청이 시간 초과되었습니다. 네트워크 연결을 확인해주세요.')), 30000);
+      });
 
-    if (success) {
-      onSuccess();
+      const signUpPromise = signUp(nickname, password);
+      const success = await Promise.race([signUpPromise, timeoutPromise]);
+      
+      if (success) {
+        onSuccess();
+      }
+    } catch (err: any) {
+      console.error('[SignUpScreen] 회원가입 에러:', err);
+      setLocalError(err.message || '회원가입 중 오류가 발생했습니다.');
+    } finally {
+      setIsLoading(false);
     }
   };
 

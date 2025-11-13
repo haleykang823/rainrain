@@ -11,18 +11,31 @@ export const authService = {
    */
   async signUp(nickname: string, password: string): Promise<{ user: User | null; error: string | null }> {
     try {
+      console.log('[authService] signUp 시작:', nickname);
+      
       // 1. 닉네임 중복 확인
-      const { data: existing } = await supabase
+      console.log('[authService] 닉네임 중복 확인 중...');
+      const { data: existing, error: checkError } = await supabase
         .from('users')
         .select('id')
         .eq('nickname', nickname)
         .maybeSingle();
+
+      if (checkError) {
+        console.error('[authService] 닉네임 중복 확인 에러:', checkError);
+        // 테이블이 없는 경우를 위한 에러 메시지
+        if (checkError.code === '42P01' || checkError.message?.includes('does not exist')) {
+          return { user: null, error: '데이터베이스 테이블이 생성되지 않았습니다. Supabase 설정을 확인해주세요.' };
+        }
+        return { user: null, error: checkError.message || '닉네임 확인 중 오류가 발생했습니다.' };
+      }
 
       if (existing) {
         return { user: null, error: '이미 사용 중인 닉네임입니다.' };
       }
 
       // 2. Supabase Auth 회원가입 (닉네임을 이메일 형식으로 변환)
+      console.log('[authService] Supabase Auth 회원가입 시도...');
       const email = `${nickname}@game.local`;
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
@@ -32,11 +45,20 @@ export const authService = {
         },
       });
 
-      if (authError || !authData.user) {
-        return { user: null, error: authError?.message || '회원가입에 실패했습니다.' };
+      if (authError) {
+        console.error('[authService] Auth 회원가입 에러:', authError);
+        return { user: null, error: authError.message || '회원가입에 실패했습니다.' };
       }
 
+      if (!authData.user) {
+        console.error('[authService] 사용자 데이터 없음');
+        return { user: null, error: '회원가입에 실패했습니다. 사용자 정보를 생성할 수 없습니다.' };
+      }
+
+      console.log('[authService] Auth 회원가입 성공, 사용자 ID:', authData.user.id);
+
       // 3. public.users 테이블에 프로필 생성
+      console.log('[authService] users 테이블에 프로필 생성 시도...');
       const { data: userData, error: insertError } = await supabase
         .from('users')
         .insert([{
@@ -48,8 +70,10 @@ export const authService = {
         .single();
 
       if (insertError) {
+        console.error('[authService] 프로필 생성 에러:', insertError);
         // 이미 존재하는 경우 조회
         if (insertError.code === '23505') {
+          console.log('[authService] 중복 키 에러, 기존 사용자 조회 시도...');
           const { data } = await supabase
             .from('users')
             .select('*')
@@ -57,14 +81,21 @@ export const authService = {
             .single();
           
           if (data) {
+            console.log('[authService] 기존 사용자 조회 성공');
             return { user: data as User, error: null };
           }
         }
-        return { user: null, error: insertError.message };
+        // 테이블이 없는 경우를 위한 에러 메시지
+        if (insertError.code === '42P01' || insertError.message?.includes('does not exist')) {
+          return { user: null, error: '데이터베이스 테이블이 생성되지 않았습니다. Supabase 설정을 확인해주세요.' };
+        }
+        return { user: null, error: insertError.message || '프로필 생성에 실패했습니다.' };
       }
 
+      console.log('[authService] 회원가입 완료:', userData.nickname);
       return { user: userData as User, error: null };
     } catch (error: any) {
+      console.error('[authService] signUp 예외 발생:', error);
       return { user: null, error: error.message || '회원가입 중 오류가 발생했습니다.' };
     }
   },
